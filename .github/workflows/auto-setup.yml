@@ -6,12 +6,17 @@ on:
     types: [opened, reopened]
 
 jobs:
+  ##########################################
+  # 1. Create CODEOWNERS & PR Template
+  ##########################################
   init-files:
     name: 🛠 Create CODEOWNERS & PR Template
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT }} # ✅ use PAT for full push rights
 
       - name: Create required files
         run: |
@@ -36,9 +41,13 @@ jobs:
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
           git add .github/CODEOWNERS .github/pull_request_template.md
-          git commit -m "Automated: Added CODEOWNERS & PR template" || echo "No changes"
-          git push https://x-access-token:${{ secrets.PAT }}@github.com/fubukipod/test_repo_-2 HEAD:main
+          git commit -m "Automated: Added CODEOWNERS & PR template" || echo "No changes to commit"
+          git remote set-url origin https://x-access-token:${{ secrets.PAT }}@github.com/fubukipod/test_repo_-2
+          git push origin HEAD:main
 
+  ##########################################
+  # 2. Invite collaborator
+  ##########################################
   invite-collaborator:
     name: 🤝 Invite softservedata
     runs-on: ubuntu-latest
@@ -52,6 +61,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
 
+  ##########################################
+  # 3. Ensure develop branch exists & set as default
+  ##########################################
   create-develop:
     name: 🌱 Ensure develop branch & set default
     runs-on: ubuntu-latest
@@ -59,13 +71,16 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT }}
 
       - name: Create develop if missing
         run: |
           if ! git ls-remote --heads https://x-access-token:${{ secrets.PAT }}@github.com/fubukipod/test_repo_-2 develop | grep develop; then
             echo "Creating develop branch..."
             git checkout -b develop
-            git push https://x-access-token:${{ secrets.PAT }}@github.com/fubukipod/test_repo_-2 develop
+            git remote set-url origin https://x-access-token:${{ secrets.PAT }}@github.com/fubukipod/test_repo_-2
+            git push origin develop
           else
             echo "Develop branch already exists."
           fi
@@ -78,6 +93,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
 
+  ##########################################
+  # 4. Apply branch protection rules
+  ##########################################
   branch-protection:
     name: 🔒 Apply Branch Protection Rules
     runs-on: ubuntu-latest
@@ -111,6 +129,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
 
+  ##########################################
+  # 5. Generate & add deploy key
+  ##########################################
   add-deploy-key:
     name: 🔑 Add Deploy Key
     runs-on: ubuntu-latest
@@ -136,6 +157,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
 
+  ##########################################
+  # 6. Create GitHub project board
+  ##########################################
   create-project:
     name: 📋 Create Project Board
     runs-on: ubuntu-latest
@@ -150,6 +174,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
 
+  ##########################################
+  # 7. Notify Discord on PR creation
+  ##########################################
   notify-discord:
     name: 📢 Discord PR Notification
     runs-on: ubuntu-latest
