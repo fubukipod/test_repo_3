@@ -16,7 +16,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.PAT }} # ✅ use PAT for full push rights
+          token: ${{ secrets.PAT }}
 
       - name: Create required files
         run: |
@@ -36,14 +36,16 @@ jobs:
           - [ ] Will this be part of a product update? If yes, describe briefly
           EOF
 
-      - name: Commit and push templates
+      - name: Commit and push templates (safe rebase)
         run: |
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
+          git remote set-url origin https://x-access-token:${{ secrets.PAT }}@github.com/fubukipod/test_repo_-2
+          git fetch origin main
+          git rebase origin/main || echo "No rebase needed"
           git add .github/CODEOWNERS .github/pull_request_template.md
           git commit -m "Automated: Added CODEOWNERS & PR template" || echo "No changes to commit"
-          git remote set-url origin https://x-access-token:${{ secrets.PAT }}@github.com/fubukipod/test_repo_-2
-          git push origin HEAD:main
+          git push origin HEAD:main --force-with-lease
 
   ##########################################
   # 2. Invite collaborator
@@ -74,13 +76,14 @@ jobs:
         with:
           token: ${{ secrets.PAT }}
 
-      - name: Create develop if missing
+      - name: Create develop if missing (safe push)
         run: |
+          git remote set-url origin https://x-access-token:${{ secrets.PAT }}@github.com/fubukipod/test_repo_-2
+          git fetch origin main
           if ! git ls-remote --heads https://x-access-token:${{ secrets.PAT }}@github.com/fubukipod/test_repo_-2 develop | grep develop; then
             echo "Creating develop branch..."
-            git checkout -b develop
-            git remote set-url origin https://x-access-token:${{ secrets.PAT }}@github.com/fubukipod/test_repo_-2
-            git push origin develop
+            git checkout -b develop origin/main
+            git push origin develop --force-with-lease
           else
             echo "Develop branch already exists."
           fi
